@@ -1,0 +1,47 @@
+version: '3.4'
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: db
+    restart: always
+    environment:
+      MSSQL_SA_PASSWORD: root
+      ACCEPT_EULA: Y
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-Usa", "-PyourStrong(!)Password", "-Q", "select 1"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - momo_network
+  backend:
+    depends_on:
+      condition: service_healthy
+      restart: true
+    restart: always
+    container_name: backend
+    image: backend
+    build:
+      context: backend
+      dockerfile: ./Dockerfile
+    networks:
+      - momo_network
+  frontend:
+    depends_on:
+      backend:
+        condition: service_started
+      db:
+        condition: service_started
+    restart: always
+    container_name: frontend
+    image: frontend
+    build:
+      context: frontend
+      dockerfile: ./Dockerfile
+    networks:
+      - momo_network
+
+networks:
+  momo_network:
